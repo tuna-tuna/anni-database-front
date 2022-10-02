@@ -9,30 +9,43 @@ import Image from 'next/image';
 import { Box } from '@mui/system';
 
 const Home: NextPage = () => {
+    const [initialPlayerInfo, setInitialPlayerInfo] = useState<PlayerInfo[]>();
     const [playerInfo, setPlayerInfo] = useState<PlayerInfo[]>();
+    const [searchText, setSearchText] = useState<string>('');
     useEffect(() => {
         axios.get('http://localhost:2999/api/playerdata').then((playerDataRaw) => {
             const playerData = playerDataRaw.data.data as unknown as PlayerInfo[];
+            setInitialPlayerInfo(playerData);
             setPlayerInfo(playerData);
         });
     }, []);
+    useEffect(() => {
+        const re = new RegExp(searchText, 'ig');
+        setPlayerInfo(initialPlayerInfo?.filter(player => re.test(player.mcid)));
+    }, [initialPlayerInfo, searchText]);
+    const handleText = (text: string) => {
+        setSearchText(text);
+    }
     return (
-        <TableContainer component={Paper}>
-            <Table aria-label='collapsible table'>
-                <TableHead>
-                    <TableRow>
-                        <TableCell />
-                        <TableCell />
-                        <TableCell>MCID</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {(playerInfo?.map((player, i) => (
-                        <Row data={player} key={i} />
-                    )))}
-                </TableBody>
-            </Table>
-        </TableContainer>
+        <>
+            <input type='text' onChange={event => handleText(event.target.value)} />
+            <TableContainer component={Paper}>
+                <Table aria-label='collapsible table'>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell />
+                            <TableCell />
+                            <TableCell>MCID</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {playerInfo?.map((player) => (
+                            <Row data={player} key={player.uuid} />
+                        ))}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </>
     );
 }
 
