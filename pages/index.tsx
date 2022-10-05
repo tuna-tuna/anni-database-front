@@ -1,4 +1,4 @@
-import { Collapse, IconButton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
+import { Collapse, IconButton, Modal, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import Paper from '@mui/material/Paper';
@@ -35,7 +35,7 @@ const Home: NextPage = () => {
         setModalData(data);
     }
 
-    const handleClick = () => {
+    const handleClose = () => {
         setOpen(false);
     }
 
@@ -85,6 +85,16 @@ const Home: NextPage = () => {
 
     return (
         <>
+            <Modal
+                open={isOpen}
+                onClose={handleClose}
+            >
+                <Box>
+                    <Typography variant='h5' component='h2'>
+                        {modalData?.mcid}
+                    </Typography>
+                </Box>
+            </Modal>
             <input type='text' onChange={event => handleText(event.target.value)} />
             <Box>
                 <MUIDataTable
