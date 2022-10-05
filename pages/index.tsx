@@ -7,10 +7,13 @@ import React, { useEffect, useState } from 'react'
 import axios from 'axios';
 import Image from 'next/image';
 import { Box } from '@mui/system';
+import MUIDataTable, { MUIDataTableProps } from 'mui-datatables';
 
 const Home: NextPage = () => {
     const [initialPlayerInfo, setInitialPlayerInfo] = useState<PlayerInfo[]>();
     const [playerInfo, setPlayerInfo] = useState<PlayerInfo[]>();
+    const [isOpen, setOpen] = useState<boolean>(false);
+    const [modalData, setModalData] = useState<PlayerInfo>();
     const [searchText, setSearchText] = useState<string>('');
     useEffect(() => {
         axios.get('http://localhost:2999/api/playerdata').then((playerDataRaw) => {
@@ -26,25 +29,71 @@ const Home: NextPage = () => {
     const handleText = (text: string) => {
         setSearchText(text);
     }
+
+    const handleOpen = (data: PlayerInfo) => {
+        setOpen(true);
+        setModalData(data);
+    }
+
+    const handleClick = () => {
+        setOpen(false);
+    }
+
+    const rowClickEvent = (rowData: string[], rowMeta: { dataIndex: number, rowIndex: number }): void => {
+        if (typeof playerInfo !== 'undefined') {
+            handleOpen(playerInfo[rowMeta.rowIndex]);
+        }
+    }
+
+    const columns = [
+        {
+            name: 'skin',
+            label: 'Skin',
+            options: {
+                filter: false, sort: false,
+                customBodyRenderLite: (dataIndex: number) => {
+                    return (
+                        <>
+                            {typeof playerInfo !== 'undefined'
+                                ?
+                                <Image src={`https://minotar.net/avatar/${playerInfo[dataIndex].uuid}/50`} alt='' width={50} height={50} />
+                                : <Image src={`https://minotar.net/helm/MHF_Steve/50.png`} alt='' width={50} height={50} />
+                    }
+                        </>
+                    )
+                }
+            },
+        },
+        {
+            name: 'mcid',
+            label: 'MCID',
+            options: { filter: true },
+        },
+        {
+            name: 'lastSeen',
+            label: 'Last Seen',
+        },
+        {
+            name: 'lastUpdate',
+            label: 'Last Update',
+        }
+    ];
+
+    const options = {
+        onRowClick: rowClickEvent
+    };
+
     return (
         <>
             <input type='text' onChange={event => handleText(event.target.value)} />
-            <TableContainer component={Paper}>
-                <Table aria-label='collapsible table'>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell />
-                            <TableCell />
-                            <TableCell>MCID</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {playerInfo?.map((player) => (
-                            <Row data={player} key={player.uuid} />
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+            <Box>
+                <MUIDataTable
+                    title={''}
+                    data={playerInfo as Object[]}
+                    columns={columns}
+                    options={options}
+                />
+            </Box>
         </>
     );
 }
