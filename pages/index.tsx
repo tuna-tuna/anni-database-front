@@ -1,13 +1,10 @@
 import { Collapse, IconButton, Modal, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import Paper from '@mui/material/Paper';
 import type { NextPage } from 'next'
 import React, { useEffect, useState } from 'react'
 import axios from 'axios';
 import Image from 'next/image';
 import { Box } from '@mui/system';
-import MUIDataTable, { MUIDataTableProps } from 'mui-datatables';
+import MUIDataTable from 'mui-datatables';
 
 const Home: NextPage = () => {
     const [initialPlayerInfo, setInitialPlayerInfo] = useState<PlayerInfo[]>();
@@ -15,6 +12,20 @@ const Home: NextPage = () => {
     const [isOpen, setOpen] = useState<boolean>(false);
     const [modalData, setModalData] = useState<PlayerInfo>();
     const [searchText, setSearchText] = useState<string>('');
+
+    const modalStyle = {
+        position: 'absolute' as 'absolute',
+        top: '10%',
+        left: '10%',
+        width: '80%',
+        height: '80%',
+        color: 'primary.main',
+        bgcolor: 'background.paper',
+        borderRadius: 3,
+        boxShadow: 20,
+        p: 4
+    }
+
     useEffect(() => {
         axios.get('http://localhost:2999/api/playerdata').then((playerDataRaw) => {
             const playerData = playerDataRaw.data.data as unknown as PlayerInfo[];
@@ -89,7 +100,7 @@ const Home: NextPage = () => {
                 open={isOpen}
                 onClose={handleClose}
             >
-                <Box>
+                <Box sx={modalStyle}>
                     <Typography variant='h5' component='h2'>
                         {modalData?.mcid}
                     </Typography>
@@ -104,54 +115,6 @@ const Home: NextPage = () => {
                     options={options}
                 />
             </Box>
-        </>
-    );
-}
-
-const Row: React.FC<{ data: PlayerInfo }> = (props) => {
-    const [isOpen, setOpen] = useState(false);
-    return (
-        <>
-            <TableRow>
-                <TableCell align='right'>
-                    <IconButton aria-label='expand row' size='small' onClick={() => setOpen(!isOpen)}>
-                        {isOpen ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                    </IconButton>
-                </TableCell>
-                <TableCell align='right'>
-                    <Image src={`https://minotar.net/avatar/${props.data.uuid}/50`} alt='' width={50} height={50} />
-                </TableCell>
-                <TableCell>
-                    {props.data.mcid}
-                </TableCell>
-            </TableRow>
-            <TableRow>
-                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-                    <Collapse in={isOpen} timeout='auto' unmountOnExit>
-                        <Box sx={{ margin: 1 }} >
-                            <Typography variant='h6' gutterBottom component='div'>
-                                Name History
-                            </Typography>
-                            <Table size='small' aria-label='history'>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>MCID</TableCell>
-                                        <TableCell>Changed At</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {props.data.history.map((namedata, i) => (
-                                        <TableRow key={i}>
-                                            <TableCell>{namedata.mcid}</TableCell>
-                                            <TableCell>{namedata.changedAt}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </Box>
-                    </Collapse>
-                </TableCell>
-            </TableRow>
         </>
     );
 }
