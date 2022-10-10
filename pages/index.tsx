@@ -1,17 +1,48 @@
-import { Collapse, IconButton, Modal, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
+import { Modal, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
 import Paper from '@mui/material/Paper';
+import LinearProgress from '@mui/material/LinearProgress';
+import IconButton from '@mui/material/IconButton';
+import StarIcon from '@mui/icons-material/Star';
+import StarOutlineIcon from '@mui/icons-material/StarOutline';
 import type { NextPage } from 'next'
 import React, { useEffect, useState } from 'react'
 import axios from 'axios';
 import Image from 'next/image';
 import { Box } from '@mui/system';
-import MUIDataTable from 'mui-datatables';
+import MUIDataTable, { MUIDataTableOptions } from 'mui-datatables';
 
 const Home: NextPage = () => {
+    const defaultModalData: PlayerInfo = {
+        mcid: '',
+        uuid: '',
+        lastSeenRaw: 0,
+        lastSeen: '',
+        lastUpdateRaw: 0,
+        lastUpdate: '',
+        isFavorite: false,
+        history: []
+    };
+
+    const defaultModalStatsData: AnniStats = {
+        mcid: '',
+        playTime: {
+            playHour: '',
+            playMin: ''
+        },
+        winLose: '',
+        bowKills: '',
+        meleeKills: '',
+        nexusDamage: '',
+        oresMined: '',
+        lastUpdate: 0
+    }
+
     const [playerInfo, setPlayerInfo] = useState<PlayerInfo[]>();
     const [isOpen, setOpen] = useState<boolean>(false);
-    const [modalData, setModalData] = useState<PlayerInfo>();
-    const [modalStatsData, setModalStatsData] = useState<AnniStats>();
+    const [modalData, setModalData] = useState<PlayerInfo>(defaultModalData);
+    const [modalStatsData, setModalStatsData] = useState<AnniStats>(defaultModalStatsData);
+    const [isStatsLoading, setStatsLoading] = useState<boolean>(false);
+    const [_, forceRender] = useState(false);
 
     const modalStyle = {
         position: 'absolute' as 'absolute',
@@ -42,7 +73,7 @@ const Home: NextPage = () => {
 
     const modalNameHistory = {
         position: 'absolute' as 'absolute',
-        top: '15%',
+        top: '10%',
         left: '30%',
         width: '60%',
         height: '50%',
@@ -50,7 +81,7 @@ const Home: NextPage = () => {
 
     const modalStats = {
         position: 'absolute' as 'absolute',
-        top: '75%',
+        top: '65%',
         left: '30%',
         width: '40%',
         height: '30%'
@@ -64,10 +95,14 @@ const Home: NextPage = () => {
     }, []);
 
     useEffect(() => {
-        axios.get(`http://localhost:2999/api/playerstats/${modalData?.mcid}`).then((playerStatsRaw) => {
-            const playerStats = playerStatsRaw.data.data as AnniStats;
-            setModalStatsData(playerStats);
-        });
+        if (typeof modalData !== 'undefined' && modalData.mcid !== '') {
+            setStatsLoading(true);
+            axios.get(`http://localhost:2999/api/playerstats/${modalData?.mcid}`).then((playerStatsRaw) => {
+                const playerStats = playerStatsRaw.data.data as AnniStats;
+                setModalStatsData(playerStats);
+                setStatsLoading(false);
+            });
+        }
     }, [modalData]);
 
     const handleOpen = (data: PlayerInfo) => {
@@ -77,11 +112,37 @@ const Home: NextPage = () => {
 
     const handleClose = () => {
         setOpen(false);
+        setModalData(defaultModalData);
+        setModalStatsData(defaultModalStatsData);
     }
 
-    const rowClickEvent = (rowData: string[], rowMeta: { dataIndex: number, rowIndex: number }): void => {
+    const cellClickEvent = (colData: any, cellMeta: { colIndex: number, rowIndex: number, dataIndex: number }) => {
         if (typeof playerInfo !== 'undefined') {
-            handleOpen(playerInfo[rowMeta.dataIndex]);
+            if (cellMeta.colIndex === 4) {
+                return;
+            } else {
+                handleOpen(playerInfo[cellMeta.dataIndex]);
+            }
+        }
+    };
+
+    const favoriteClickEvent = async (dataIndex: number): Promise<void> => {
+        if (typeof playerInfo !== 'undefined') {
+            await axios.get(`http://localhost:2999/api/favorite/${playerInfo[dataIndex].uuid}`);
+            /*setPlayerInfo([
+                ...playerInfo,
+                {
+                    ...playerInfo[dataIndex],
+                    isFavorite: !playerInfo[dataIndex].isFavorite
+                }
+            ]);*/
+            
+            let newPlayerInfo: PlayerInfo[] = playerInfo;
+            newPlayerInfo[dataIndex].isFavorite = !playerInfo[dataIndex].isFavorite;
+            setPlayerInfo(newPlayerInfo);
+            
+            // shallow ...
+            forceRender(!_);
         }
     }
 
@@ -116,11 +177,33 @@ const Home: NextPage = () => {
         {
             name: 'lastUpdate',
             label: 'Last Update',
+        },
+        {
+            name: 'isFavorite',
+            label: 'Favorite',
+            options: {
+                customBodyRenderLite: (dataIndex: number) => {
+                    return (
+                        <>
+                            {typeof playerInfo !== 'undefined'
+                                ? (playerInfo[dataIndex].isFavorite
+                                    ? <IconButton sx={{ color: '#ff0' }} onClick={() => favoriteClickEvent(dataIndex)}>
+                                          <StarIcon />
+                                      </IconButton>
+                                    : <IconButton onClick={() => favoriteClickEvent(dataIndex)}>
+                                          <StarOutlineIcon />
+                                      </IconButton>)
+                                : <StarOutlineIcon />}
+                        </>
+                    );
+                }
+            }
         }
     ];
 
-    const options = {
-        onRowClick: rowClickEvent
+    const options: MUIDataTableOptions = {
+        selectableRows: 'none',
+        onCellClick: cellClickEvent,
     };
 
     return (
@@ -135,9 +218,10 @@ const Home: NextPage = () => {
                             {modalData?.mcid}
                         </Typography>
                     </Box>
-                    <Box sx={modalSkin}>
-                        <Image src={`https://mc-heads.net/body/${modalData?.uuid}/250/left`} alt='' width={250} height={600} />
-                    </Box>
+                    {//<Box sx={modalSkin}>
+                        //<Image src={`https://mc-heads.net/body/${modalData?.uuid}/250/left`} alt='' width={250} height={600} />
+                    //</Box>
+                    }
                     <Box sx={modalNameHistory}>
                         <TableContainer component={Paper} sx={{maxHeight: '100%'}}>
                             <Table size='small'>
@@ -158,37 +242,41 @@ const Home: NextPage = () => {
                             </Table>
                         </TableContainer>
                     </Box>
-                    <Box sx={modalStats}>
-                        <TableContainer component={Paper} sx={{ maxHeight: '100%' }}>
-                            <Table>
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell>Play Time</TableCell>
-                                        <TableCell>{`${modalStatsData?.playTime.playHour}H ${modalStatsData?.playTime.playMin}M`}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Wins:Loses</TableCell>
-                                        <TableCell>{modalStatsData?.winLose}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Bow Kills</TableCell>
-                                        <TableCell>{modalStatsData?.bowKills}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Melee Kills</TableCell>
-                                        <TableCell>{modalStatsData?.meleeKills}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Nexus Damages</TableCell>
-                                        <TableCell>{modalStatsData?.nexusDamage}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Ores Mined</TableCell>
-                                        <TableCell>{modalStatsData?.oresMined}</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
+                    <Box sx={modalStats} component={Paper}>
+                        {isStatsLoading
+                            ? <LinearProgress sx={{ top: '50%'}}/>
+                            :
+                            <TableContainer component={Paper} sx={{ maxHeight: '100%' }}>
+                                <Table>
+                                    <TableBody>
+                                        <TableRow>
+                                            <TableCell>Play Time</TableCell>
+                                            <TableCell>{`${modalStatsData?.playTime.playHour}H ${modalStatsData?.playTime.playMin}M`}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>Wins:Loses</TableCell>
+                                            <TableCell>{modalStatsData?.winLose}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>Bow Kills</TableCell>
+                                            <TableCell>{modalStatsData?.bowKills}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>Melee Kills</TableCell>
+                                            <TableCell>{modalStatsData?.meleeKills}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>Nexus Damages</TableCell>
+                                            <TableCell>{modalStatsData?.nexusDamage}</TableCell>
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell>Ores Mined</TableCell>
+                                            <TableCell>{modalStatsData?.oresMined}</TableCell>
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        }
                     </Box>
                 </Box>
             </Modal>
