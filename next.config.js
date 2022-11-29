@@ -3,7 +3,7 @@ const nextConfig = {
     reactStrictMode: false,
     swcMinify: true,
     images: {
-        domains: ['minotar.net']
+        domains: ['minotar.net', 'mc-heads.net']
     }
 }
 
